@@ -45,35 +45,67 @@ require 'presenter/Web.php';
 $view = new Web();
 
 // ----------------------------------------------------------------------------
-// Route
+// Route - Control functions
+
+$authenticate = function () {
+    return function() {
+       
+        if (!User::logged()) {
+            $app = \Slim\Slim::getInstance();
+            $app->flash('error', 'Login required');
+            $app->redirect('/');
+        }
+    };
+};
+
+$queryParameters = function($params = array()) use (&$app, &$view) {
+    return function () use($params,&$app, &$view){
+        if (count($params)) {
+            foreach ($params as &$param) {
+                if (!$app->request()->get($param)) {
+                    $view->renderErr($app, 400, 'Required parameter missing.');
+                    $is_callable = false;
+                }
+            }
+        }
+    };
+};
+
+
+// ----------------------------------------------------------------------------
+// Route - Routes
 
 /**
  * Open a document
  * TODO: No tiene vista, solo abre y redireciona
  */
-$app->get('/open', function() use ($app, $logic) {
-  /*checkUserAuthentication($app);
-  checkRequiredQueryParams($app, array('file_id'));
+$app->get('/open', $authenticate(), 
+//$queryParameters(array('file_id')), 
+function() use ($app, $logic, $view) {
+
   $fileId = $app->request()->get('file_id');
+  $fileId = "0B9eflbZYTz_JU2t3SDhTOWFrRlU"; //Test
+  //$fileId = "0B9eflbZYTz_Jc0hQbnJ4QlFuajg"; //Test II
+  
   try {
-    // Retrieve metadata for the file specified by $fileId.
-    $file = $service->files->get($fileId);
-
-    // Get the contents of the file.
-    $request = new Google_HttpRequest($file->downloadUrl);
-    $response = $client->getIo()->authenticatedRequest($request);
-    $file->content = $response->getResponseBody();
-
-    renderJson($app, $file);
+    
+    $view->render($logic->getFile($fileId));
+    
   } catch (Exception $ex) {
-    renderEx($app, $ex);
-  }*/
+    //TODO: Gestion de error
+    echo "MAL ".$ex->getMessage();
+  }
 });
 
 /**
  * Gets the metadata and contents for the given file_id.
  */
-$app->get('/doc', function() use ($app, $logic) {
+$app->get('/doc', $authenticate(), function() use ($app, $logic, $view) {
+    
+  //Probar a guardar un docuemnto
+  $file = $logic->setFile("Test_".time().".url", "www.google.com");
+  
+  $view->render($file);
   /*checkUserAuthentication($app);
   checkRequiredQueryParams($app, array('file_id'));
   $fileId = $app->request()->get('file_id');
@@ -200,7 +232,7 @@ $app->get('/', function() use ($app, $logic) {
     if ($code = $app->request()->get('code')) {
         //Conseguimos los tokens de acceso y guardamos en la session
         $logic->authenticateClient();
-        User::set_tokens($client->getAccessToken());
+        User::set_tokens($logic->getAccessToken());
         $app->redirect('/'); //Para eliminar la cabezera y las variables GET
     }
 
@@ -223,9 +255,9 @@ $app->get('/', function() use ($app, $logic) {
             var_dump($ex->getMessage());
         }*/
         
-        echo "<pre>";
+        /*echo "<pre>";
         var_dump($logic->getFile("0B9eflbZYTz_JU2t3SDhTOWFrRlU"));
-        echo "</pre>";
+        echo "</pre>";*/
         
         $app->render('index.html');
         

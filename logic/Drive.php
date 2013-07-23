@@ -29,6 +29,10 @@ require 'helpers/Service.php';
          return $this->client->createAuthUrl();
      }
      
+     function getAccessToken() {
+         return $this->client->getAccessToken();
+     }
+     
      // ----------------------------------------------------------------------------
      // Files funtions
      
@@ -45,5 +49,30 @@ require 'helpers/Service.php';
          //Parsear los datos para igualizar??
          
          return $file;
+     }
+     
+     function setFile($name, $url = "") {
+            
+        //Crear el fichero    
+        $file = new Google_DriveFile();
+        if ($name == "") $name = "Untitle_url_".date("n_d_y")."url";
+        $file->setTitle($name);
+        //$file->setDescription($inputFile->description);
+        $file->setMimeType("text/url");
+        //$file->setMimeType("text/plain");
+        
+        // Set the parent folder.
+        /*if ($inputFile->parentId != null) {
+          $parentsCollectionData = new Google_DriveFileParentsCollection();
+          $parentsCollectionData->setId($inputFile->parentId);
+          $file->setParentsCollection(array($parentsCollectionData));
+        }*/
+        
+        $createdFile = Service::GoogleDrive($this->client)->files->insert($file, array(
+          'data' => "{url:$url, date:".time()."}",
+          'mimeType' => "text/url",
+        ));
+        
+        return $createdFile;
      }
  }
